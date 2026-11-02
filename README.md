@@ -12,15 +12,17 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000`.
 
-## Waitlist setup
+## Waitlist setup (Brevo)
 
-The page is ready to collect the name, email address, and primary interest. It deliberately does not send personal data anywhere until a collection provider is selected.
+The form posts to a Brevo signup form (free plan, EU-hosted). Until `waitlistEndpoint` in `script.js` is set, submissions are stored only in the visitor's own browser as a preview and no data leaves their device.
 
-1. Create a form endpoint with a provider such as Formspree, Basin, or your own privacy-reviewed API.
-2. In `script.js`, set `waitlistEndpoint` to that HTTPS endpoint.
-3. Test a submission and confirm the provider's privacy notice and retention settings before publishing.
+1. In Brevo, open **Contacts → Settings → Contact attributes** and add a text attribute `INTEREST`. `FIRSTNAME` already exists.
+2. Create a list (for example "Centen waitlist").
+3. Go to **Contacts → Forms → Create a subscription form**. Add the fields Email, FIRSTNAME and INTEREST, pick the list, and turn on **double opt-in** with a confirmation email.
+4. On the **Share** step, copy the embed HTML and take the URL from `<form action="https://…sibforms.com/serve/…">`.
+5. Paste that URL into `waitlistEndpoint` in `script.js`, push, and test one sign-up end to end.
 
-Until then, submissions are stored only in the visitor's own browser as a preview, and no data leaves their device. This lets the prototype demonstrate the success state without pretending to have captured a registration.
+The form field names (`EMAIL`, `FIRSTNAME`, `INTEREST`, the `email_address_check` honeypot and `locale`) match Brevo's embed form.
 
 ## Deploy to GitHub Pages
 

@@ -1,31 +1,40 @@
 const form = document.querySelector('#waitlist-form');
 const status = document.querySelector('#form-status');
-const waitlistEndpoint = ''; // Add a Formspree or similar endpoint here before public launch.
+// Brevo signup form URL (Contacts → Forms → Share → "Embed" HTML, the <form action="…sibforms.com/serve/…">).
+const waitlistEndpoint = '';
 
 document.querySelector('#year').textContent = new Date().getFullYear();
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const email = form.elements.email;
+  const email = form.elements.EMAIL;
   if (!email.validity.valid) {
     status.textContent = 'Please enter a valid email address.';
     email.focus();
     return;
   }
-  const data = Object.fromEntries(new FormData(form));
+  const data = new FormData(form);
+  if (data.get('email_address_check')) return; // honeypot filled: quietly ignore bots
   if (!waitlistEndpoint) {
-    localStorage.setItem('centen-waitlist-preview', JSON.stringify({ ...data, submittedAt: new Date().toISOString() }));
+    localStorage.setItem('centen-waitlist-preview', JSON.stringify({ ...Object.fromEntries(data), submittedAt: new Date().toISOString() }));
     form.reset();
     status.textContent = 'Preview saved on this device. Connect the waitlist service to start collecting registrations.';
     return;
   }
+  const button = form.querySelector('[type="submit"]');
+  button.disabled = true;
+  status.textContent = 'Sending…';
   try {
-    const response = await fetch(waitlistEndpoint, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-    if (!response.ok) throw new Error('Waitlist submission failed');
+    // isAjax=1 makes Brevo answer with JSON instead of redirecting to its own success page.
+    const response = await fetch(`${waitlistEndpoint}?isAjax=1`, { method: 'POST', body: data });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.success === false) throw new Error('Waitlist submission failed');
     form.reset();
-    status.textContent = 'You’re on the list. We’ll be in touch soon.';
+    status.textContent = 'Almost there: please confirm the email we just sent you.';
   } catch {
     status.textContent = 'Something went wrong. Please try again in a moment.';
+  } finally {
+    button.disabled = false;
   }
 });
 

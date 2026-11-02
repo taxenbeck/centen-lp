@@ -145,11 +145,14 @@
       <section class="waitlist section-shell" id="waitlist">
         <div class="waitlist-copy"><p class="eyebrow"><span></span> Early access</p><h2>Let’s make health<br />feel more <em>possible.</em></h2><p>We’re inviting a small group to help shape Centen’s first program. Join the list and we’ll be in touch when it’s ready.</p><p class="waitlist-note">No spam. No pressure. Just an occasional, thoughtful update.</p></div>
         <form class="signup-form" id="waitlist-form" novalidate>
-          <label for="name">First name <span>(optional)</span></label><input id="name" name="name" autocomplete="given-name" type="text" />
-          <label for="email">Email address</label><input id="email" name="email" autocomplete="email" type="email" required placeholder="you@example.com" />
-          <label for="interest">What would you most like help with?</label><select id="interest" name="interest"><option value="Movement">Moving more every day</option><option value="Strength">Building strength</option><option value="Sleep">Sleeping more steadily</option><option value="Alcohol-free">More alcohol-free days</option><option value="Whole health">A more balanced health routine</option></select>
+          <label for="name">First name <span>(optional)</span></label><input id="name" name="FIRSTNAME" autocomplete="given-name" type="text" />
+          <label for="email">Email address</label><input id="email" name="EMAIL" autocomplete="email" type="email" required placeholder="you@example.com" />
+          <label for="interest">What would you most like help with?</label><select id="interest" name="INTEREST"><option value="Movement">Moving more every day</option><option value="Strength">Building strength</option><option value="Sleep">Sleeping more steadily</option><option value="Alcohol-free">More alcohol-free days</option><option value="Whole health">A more balanced health routine</option></select>
+          <input class="honeypot" type="text" name="email_address_check" value="" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <input type="hidden" name="locale" value="en" />
           <button class="button button-primary" type="submit">Request early access <span aria-hidden="true">→</span></button>
           <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+          <p class="form-privacy">We store your email with our EU-based mailing provider, Brevo, only to send you Centen updates. You’ll confirm by email first and can unsubscribe at any time.</p>
         </form>
       </section>
     </main>
