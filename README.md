@@ -1,6 +1,6 @@
 # Centen landing page
 
-A static marketing and early-access page for Centen: a privacy-first health-routine coach that begins with adaptive walking support and can grow across movement, nourishment, recovery, mental wellbeing, and connection.
+A static marketing and early-access page for Centen: a privacy-first health-routine coach that begins with adaptive walking support and can grow across movement, strength, sleep, and alcohol-free days.
 
 ## Run locally
 
