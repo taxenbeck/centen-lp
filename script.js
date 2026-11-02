@@ -1,7 +1,7 @@
 const form = document.querySelector('#waitlist-form');
 const status = document.querySelector('#form-status');
 // Brevo signup form URL (Contacts → Forms → Share → "Embed" HTML, the <form action="…sibforms.com/serve/…">).
-const waitlistEndpoint = '';
+const waitlistEndpoint = 'https://0c77da1f.sibforms.com/serve/MUIFAM4BngZqaxqSKPM52-DrQQeLfLaVI5ci-8-YVsRzcgNuahUVoEWnyESQqexB-3DHAPhE-VxYGcuDfRyDQkRkhxmAlPbBZn6eNSZQE4MjYuGMYE7OSv0ZHaz5Ps5zgLeossh0Kvpped6USmFf9M7HStTtgGVFUE7fS9IAB9cWQOPNtIZhRzfRfRdG6oEakYA9fyeqQu9W_c8Asg==';
 
 document.querySelector('#year').textContent = new Date().getFullYear();
 
