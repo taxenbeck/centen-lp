@@ -26,6 +26,7 @@
       <nav aria-label="Main navigation">
         <a href="#heart">The heart</a>
         <a href="#how-it-works">How it works</a>
+        <a href="#token">The token</a>
         <a href="#principles">Why Centen</a>
         <a class="nav-cta" href="#waitlist">Join the pilot <span aria-hidden="true">↗</span></a>
       </nav>
@@ -135,6 +136,72 @@
           <div role="listitem" style="--pillar:#C98A2E"><span class="domain-icon tile-strength"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 7v10M3 9.5v5M18 7v10M21 9.5v5M6 12h12"/></svg></span><strong>Strength</strong><small>Short sessions you can do anywhere</small></div>
           <div role="listitem" style="--pillar:#4A5FA8"><span class="domain-icon tile-sleep"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></span><strong>Sleep</strong><small>A steadier rhythm for rest</small></div>
           <div role="listitem" style="--pillar:#9DB7A6"><span class="domain-icon tile-alcohol"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l-1 8a4 4 0 0 1-8 0L7 3zM12 15v6M8 21h8"/></svg></span><strong>Alcohol-free days</strong><small>A plan for evenings out</small></div>
+        </div>
+      </section>
+
+      <section class="token-section section-shell" id="token">
+        <div class="token-copy">
+          <p class="eyebrow"><span></span> The Centen token</p>
+          <h2>A promise you<br />can <em>wear.</em></h2>
+          <p class="token-intro">A small token on a woven band. It shows what you have done, makes today’s plan a promise and tells you when it’s time, without asking you to look at your phone.</p>
+          <ol class="token-reasons">
+            <li><span>01</span><div><h3>It shows what you’ve done</h3><p>Every time you see it, it reminds you that you invest in your health. It changes as you act: new light patterns first, later an engraving. Wearing it and buying it earn nothing; only your actions do.</p></div></li>
+            <li><span>02</span><div><h3>One press makes it a promise</h3><p>When today’s plan is ready, the token glows softly. Press it once to accept the plan, and once more when it’s done. The commitment comes from the gesture, not the electronics.</p></div></li>
+            <li><span>03</span><div><h3>A cue without the screen</h3><p>When the moment is right, a short vibration that you learn to recognise tells you it’s time. At most twice a day, and never during your quiet hours.</p></div></li>
+          </ol>
+          <p class="token-note">The token shows what you have done. It does not do it for you.</p>
+        </div>
+
+        <div class="token-stage" data-token-stage data-state="plan">
+          <button class="token-press" type="button" data-token-press aria-label="Press the token to accept today’s plan">
+            <svg class="token-art" viewBox="20 0 480 800" role="img" aria-label="The Centen token on a flat woven band, the open-ring mark glowing softly">
+              <defs>
+                <radialGradient id="tk-body" cx="200" cy="260" r="420" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4A524E"/><stop offset="1" stop-color="#232A27"/></radialGradient>
+                <linearGradient id="tk-brush" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".25"/><stop offset=".3" stop-color="#fff" stop-opacity=".08"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>
+                <linearGradient id="tk-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".09"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
+                <linearGradient id="tk-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000"/><stop offset=".2" stop-color="#fff"/><stop offset=".8" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+                <mask id="tk-band-mask"><rect x="0" y="0" width="520" height="800" fill="url(#tk-fade)"/></mask>
+                <linearGradient id="tk-band-shade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".3"/><stop offset=".08" stop-color="#000" stop-opacity=".05"/><stop offset=".5" stop-color="#fff" stop-opacity=".06"/><stop offset=".92" stop-color="#000" stop-opacity=".05"/><stop offset="1" stop-color="#000" stop-opacity=".32"/></linearGradient>
+                <pattern id="tk-twill" width="10" height="10" patternUnits="userSpaceOnUse" x="170" y="0"><path d="M-2 12 L12 -2 M-7 7 L7 -7 M3 17 L17 3" fill="none" stroke="#000" stroke-opacity=".32" stroke-width="2.6"/><path d="M-2 9 L9 -2 M3 14 L14 3" fill="none" stroke="#fff" stroke-opacity=".1" stroke-width="1.2"/></pattern>
+                <filter id="tk-shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#16211C" flood-opacity=".34"/></filter>
+                <filter id="tk-bloom" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
+              </defs>
+              <g transform="rotate(-14 260 400)">
+                <g mask="url(#tk-band-mask)">
+                  <rect class="tk-band" x="170" y="0" width="180" height="800"/>
+                  <rect x="170" y="0" width="180" height="800" fill="url(#tk-twill)"/>
+                  <rect x="170" y="0" width="180" height="800" fill="url(#tk-band-shade)"/>
+                </g>
+                <g class="tk-body" filter="url(#tk-shadow)">
+                  <rect x="152" y="202" width="216" height="396" rx="16" fill="url(#tk-body)"/>
+                  <rect x="152" y="202" width="216" height="396" rx="16" fill="url(#tk-brush)" stroke="#59625D" stroke-width="2"/>
+                  <rect x="176" y="316" width="168" height="168" rx="12" fill="#1B2220"/>
+                  <g transform="translate(200 340)">
+                    <g class="tk-glow">
+                      <path d="M88.3 31.7 A40 40 0 1 0 88.3 88.3" fill="none" stroke="#F2EBDD" stroke-opacity=".55" stroke-width="18" stroke-linecap="round" filter="url(#tk-bloom)"/>
+                      <circle class="tk-dot-glow" cx="60" cy="60" r="16" filter="url(#tk-bloom)"/>
+                      <path d="M88.3 31.7 A40 40 0 1 0 88.3 88.3" fill="none" stroke="#F2EBDD" stroke-opacity=".12" stroke-width="22" stroke-linecap="round"/>
+                    </g>
+                    <path class="tk-arc" d="M88.3 31.7 A40 40 0 1 0 88.3 88.3" fill="none" stroke-width="8.05" stroke-linecap="round"/>
+                    <circle class="tk-dot" cx="60" cy="60" r="8.025"/>
+                  </g>
+                  <rect x="176" y="316" width="168" height="168" rx="12" fill="url(#tk-glass)"/>
+                </g>
+              </g>
+            </svg>
+          </button>
+          <ol class="token-states" aria-label="What the token does">
+            <li data-step="rest">At rest</li>
+            <li data-step="plan">Plan ready</li>
+            <li data-step="done">Pressed: committed</li>
+          </ol>
+          <div class="band-swatches" role="group" aria-label="Band colour">
+            <button type="button" data-band="#24282A" aria-pressed="true" aria-label="Black band" style="--sw:#24282A"></button>
+            <button type="button" data-band="#24324A" aria-pressed="false" aria-label="Navy band" style="--sw:#24324A"></button>
+            <button type="button" data-band="#2E4A3C" aria-pressed="false" aria-label="Forest green band" style="--sw:#2E4A3C"></button>
+            <button type="button" data-band="#B5A486" aria-pressed="false" aria-label="Sand band" style="--sw:#B5A486"></button>
+          </div>
+          <p class="token-spec">22 × 12 mm · 10 mm woven band · magnetic clasp · about two weeks per charge<br /><span>In development for the pilot. Details may change.</span></p>
         </div>
       </section>
 

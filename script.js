@@ -175,3 +175,33 @@ if (journeySvg) {
     run();
   });
 }
+
+// Token (armband): plan glow → press to commit → rest, on a slow loop. A press jumps to the next state.
+const tokenStage = document.querySelector('[data-token-stage]');
+if (tokenStage) {
+  const steps = tokenStage.querySelectorAll('[data-step]');
+  const press = tokenStage.querySelector('[data-token-press]');
+  const durations = { plan: 4600, done: 2400, rest: 3000 };
+  const next = { plan: 'done', done: 'rest', rest: 'plan' };
+  let timer;
+  const show = (state) => {
+    tokenStage.dataset.state = state;
+    steps.forEach((s) => s.classList.toggle('active', s.dataset.step === state));
+    press.setAttribute('aria-label', state === 'plan' ? 'Press the token to accept today’s plan' : 'Show the token glowing when today’s plan is ready');
+    clearTimeout(timer);
+    if (!reduceMotion) timer = setTimeout(() => advance(next[state]), durations[state]);
+  };
+  const advance = (state) => {
+    if (state === 'done') {
+      tokenStage.classList.add('pressing');
+      setTimeout(() => tokenStage.classList.remove('pressing'), 180);
+    }
+    show(state);
+  };
+  press.addEventListener('click', () => advance(tokenStage.dataset.state === 'plan' ? 'done' : 'plan'));
+  tokenStage.querySelectorAll('[data-band]').forEach((b) => b.addEventListener('click', () => {
+    tokenStage.style.setProperty('--band', b.dataset.band);
+    tokenStage.querySelectorAll('[data-band]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+  }));
+  show('plan');
+}
