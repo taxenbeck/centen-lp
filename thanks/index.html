@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
-    <meta name="theme-color" content="#16211C" />
+    <meta name="theme-color" content="#141A26" />
     <title>You’re on the list — Centen</title>
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="../assets/favicon-32.png" sizes="32x32" type="image/png" />
@@ -22,18 +22,8 @@
     </header>
 
     <main class="thanks section-shell">
-      <!-- Day one (HerzStart.dc.html): level 1, Sage, just starting to fill. -->
-      <svg class="heart thanks-heart" role="img" aria-label="A heart in Sage, just starting to fill" viewBox="0 0 300 280">
-        <defs><clipPath id="thanks-heart-clip"><path d="M150 262 C150 262 22 180 22 98 C22 52 58 22 98 22 C124 22 141 36 150 54 C159 36 176 22 202 22 C242 22 278 52 278 98 C278 180 150 262 150 262 Z"/></clipPath></defs>
-        <path d="M150 262 C150 262 22 180 22 98 C22 52 58 22 98 22 C124 22 141 36 150 54 C159 36 176 22 202 22 C242 22 278 52 278 98 C278 180 150 262 150 262 Z" fill="#FFFFFF"/>
-        <g clip-path="url(#thanks-heart-clip)">
-          <g class="h-wave"><path d="M-150 247.6 Q -112.5 242.6 -75 247.6 T 0 247.6 T 75 247.6 T 150 247.6 T 225 247.6 T 300 247.6 T 375 247.6 T 450 247.6 V 280 H -150 Z" fill="#9DB7A6"/></g>
-          <rect x="0" y="247.6" width="300" height="14.4" fill="#FFFFFF" fill-opacity="0.22"/>
-        </g>
-        <path d="M150 262 C150 262 22 180 22 98 C22 52 58 22 98 22 C124 22 141 36 150 54 C159 36 176 22 202 22 C242 22 278 52 278 98 C278 180 150 262 150 262 Z" fill="none" stroke="#9DB7A6" stroke-width="2.5"/>
-        <circle cx="150" cy="132" r="38" fill="#FFFFFF" stroke="#E3E6E0" stroke-width="1"/>
-        <g transform="translate(124 106) scale(0.433)"><path d="M88.3 31.7 A40 40 0 1 0 88.3 88.3" fill="none" stroke="#16211C" stroke-width="12.65" stroke-linecap="round"/><circle cx="60" cy="60" r="10.3" fill="#9DB7A6"/></g>
-      </svg>
+      <!-- Day one: level 1, Sage, just starting to flow up the trunk. -->
+      <canvas class="tree thanks-heart" data-tree="thanks" role="img" aria-label="A tree in a glass sphere, Sage just starting to flow up from the roots"></canvas>
 
       <p class="eyebrow"><span></span> Email confirmed</p>
       <h1>You’re on <em>the list.</em></h1>
@@ -43,5 +33,10 @@
     </main>
 
     <footer class="site-footer section-shell"><a class="brand" href="../"><svg class="brand-mark" aria-hidden="true" viewBox="0 0 120 120"><path d="M88.3 31.7 A40 40 0 1 0 88.3 88.3" fill="none" stroke="currentColor" stroke-width="13.2" stroke-linecap="round"/><circle cx="60" cy="60" r="10.6" fill="currentColor"/></svg>centen</a><p>Small actions. Lasting foundations.</p><span>© 2026 Centen</span></footer>
+    <script src="../tree-sphere.js"></script>
+    <script>
+      try { new TreeSphere(document.querySelector('[data-tree="thanks"]'), { palette: ['#9DB7A6'], stage: 1, progress: 0.18 }); }
+      catch { document.querySelector('[data-tree="thanks"]').classList.add('tree-fallback'); }
+    </script>
   </body>
 </html>
