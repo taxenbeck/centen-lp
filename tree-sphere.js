@@ -23,12 +23,14 @@
   // Growth G counts stages: stage s at progress p is G = s − 1 + p (0 = the seed, N = the full tree). The seedling
   // grows in stages 1–4, the tree from TREE_START on; the camera zooms out as the plant grows.
   const F = 12; // floats per vertex: position, normal, path, thickness, anchor, timing
-  const TRUNK_RADIUS = 0.05, TREE_START = 4, STEP = 0.25, TIP = 0.06, TIP_SHARE = 0.2, YOUNG_THICK = 0.07, YOUNG_WIDTH = 0.1;
-  const SEED = [-0.03, -0.836, 0], FRAME_SEED = 0.42, FRAME_PLANT = 0.86;
+  const TRUNK_RADIUS = 0.05, TREE_START = 4, STEP = 0.25, TIP = 0.06, TIP_SHARE = 0.2, YOUNG_THICK = 0.02, YOUNG_WIDTH = 0.8;
+  const SEED = [-0.03, -0.836, 0], FRAME_SEED = 0.42, FRAME_PLANT = 0.86, PER_STAGE = 2;
   const timing = (birth, death) => birth + 1.5 + 20 * Math.round(death * 4);
   const smoothstep = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const treeGrowth = (g, stages) => { const start = Math.min(TREE_START, Math.max(0, stages - 1)); return Math.max(0, Math.min(1, (g - start) / Math.max(1e-3, stages - start))); };
   const centre = (t) => [0.15 * Math.sin(PI * 1.2 * t + 0.2) - 0.06, -0.82 + 0.81 * t, 0.05 * Math.sin(PI * t)];
+  /** The seedling's stem line: the trunk's height, but nearly upright over the seed (a quarter of the trunk's S). */
+  const stemLine = (t) => { const c = centre(t), c0 = centre(0); return [SEED[0] + (c[0] - c0[0]) * 0.25, c[1], SEED[2] + (c[2] - c0[2]) * 0.25]; };
   const makeRng = (seed) => { let st = seed >>> 0; return () => { st = (st + 0x6D2B79F5) >>> 0; let t = st; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
 
   /** World position of the vertex at offset o (as tree.vert computes it before the camera) into out; false if not grown. */
@@ -40,9 +42,10 @@
       if (path > reach) return false;
       const r = thick * TRUNK_RADIUS, grown = 1 - smoothstep(reach - tip, reach, path);
       const k = r * grown * (YOUNG_THICK + (1 - YOUNG_THICK) * tree) - r, q = YOUNG_WIDTH + (1 - YOUNG_WIDTH) * tree;
-      out[0] = SEED[0] + (v[o] + v[o + 3] * k - SEED[0]) * q;
-      out[1] = v[o + 1] + v[o + 4] * k;
-      out[2] = SEED[2] + (v[o + 2] + v[o + 5] * k - SEED[2]) * q;
+      const b = 1 - tree; // a young trunk stands upright on the seedling's stem line, strands together, limbs with it
+      out[0] = SEED[0] + (v[o] + v[o + 3] * k - v[o + 8] * b - SEED[0]) * q;
+      out[1] = v[o + 1] + v[o + 4] * k - v[o + 9] * b;
+      out[2] = SEED[2] + (v[o + 2] + v[o + 5] * k - v[o + 10] * b - SEED[2]) * q;
       return true;
     }
     const kd = Math.floor(tm / 20), birth = tm - 20 * kd - 1.5, death = kd * 0.25;
@@ -56,20 +59,22 @@
     return true;
   }
 
-  /** Camera per stage boundary k = 0..stages: zoom about SEED, the height SEED is drawn at, the seedling colour reach. */
-  function computeFraming(mesh, n) {
-    const v = mesh.vertices, count = v.length / F, w = [0, 0, 0], ax = SEED[0];
+  /** Camera every half stage (k = 0..2·stages): zoom about SEED, the height SEED is drawn at, the seedling colour reach. */
+  function computeFraming(mesh, stages) {
+    const v = mesh.vertices, w = [0, 0, 0], ax = SEED[0], n = stages * PER_STAGE;
     const zoom = new Float64Array(n + 1), seedY = new Float64Array(n + 1), reach = new Float64Array(n + 1);
+    const fit = new Float64Array(n + 1), mid = new Float64Array(n + 1);
+    // the plant at each sample, until it fills the frame at zoom 1: the largest zoom that fits it, centred in height
+    let last = n;
     for (let k = 0; k <= n; k++) {
-      if (k > 0 && zoom[k - 1] === 1) { zoom[k] = 1; seedY[k] = SEED[1]; reach[k] = reach[k - 1]; continue; }
-      const g = k, tree = treeGrowth(g, n);
+      const g = k / PER_STAGE, tree = treeGrowth(g, stages);
       let yMin = Infinity, yMax = -Infinity, pathMax = 0;
       for (let o = 0; o < v.length; o += F) {
         if (!worldInto(v, o, g, tree, w)) continue;
         if (w[1] < yMin) yMin = w[1]; if (w[1] > yMax) yMax = w[1];
         if (v[o + 11] >= 0 && v[o + 6] > pathMax) pathMax = v[o + 6];
       }
-      const radius = k <= 1 ? FRAME_SEED : FRAME_PLANT, yMid = (yMin + yMax) / 2, c = ax * ax - radius * radius;
+      const radius = g <= 1 ? FRAME_SEED : FRAME_PLANT, yMid = (yMin + yMax) / 2, c = ax * ax - radius * radius;
       let z = 200;
       for (let o = 0; o < v.length; o += F) {
         if (!worldInto(v, o, g, tree, w)) continue;
@@ -78,13 +83,19 @@
         const b = ax * dx;
         z = Math.min(z, (-b + Math.sqrt(Math.max(0, b * b - q * c))) / q);
       }
+      fit[k] = z; mid[k] = yMid;
+      reach[k] = pathMax > 0 || k === 0 ? Math.max(1e-3, pathMax) : reach[k - 1]; // kept while the seedling goes
+      if (z <= 1) { last = k; break; } // the camera has arrived; the seedling is long gone
+    }
+    for (let k = 0; k <= n; k++) {
+      if (k > last) { zoom[k] = 1; seedY[k] = SEED[1]; reach[k] = reach[k - 1]; continue; }
+      let z = k < last ? Math.min(fit[k], fit[k + 1]) : fit[k]; // the plant may grow faster than the camera eases out
       if (k > 0) z = Math.min(z, zoom[k - 1]); // never zoom back in
-      if (z <= 1 || k === n) { zoom[k] = 1; seedY[k] = SEED[1]; } else { zoom[k] = z; seedY[k] = -(yMid - SEED[1]) * z; }
-      reach[k] = pathMax > 0 || k === 0 ? Math.max(1e-3, pathMax) : reach[k - 1];
+      if (z <= 1 || k === n) { zoom[k] = 1; seedY[k] = SEED[1]; } else { zoom[k] = z; seedY[k] = -(mid[k] - SEED[1]) * z; }
     }
     const at = (a, g, log) => {
       const last = a.length - 1; if (last === 0) return a[0];
-      const x = Math.max(0, Math.min(last, g)), k = Math.max(0, Math.min(Math.floor(x), last - 1)), f = x - k;
+      const x = Math.max(0, Math.min(last, g * PER_STAGE)), k = Math.max(0, Math.min(Math.floor(x), last - 1)), f = x - k;
       return log ? Math.exp(Math.log(a[k]) * (1 - f) + Math.log(a[k + 1]) * f) : a[k] * (1 - f) + a[k + 1] * f;
     };
     return { zoomAt: (g) => at(zoom, g, true), seedYAt: (g) => at(seedY, g, false), reachAt: (g) => at(reach, g, false) };
@@ -192,8 +203,7 @@
     const STEM_FROM = 0.02;
     const stemAt = (t) => {
       if (t < 0) return add(SEED, mul(sub(stemAt(0), SEED), (t + STEM_FROM) / STEM_FROM));
-      const c = centre(t), c0 = centre(0);
-      return [SEED[0] + (c[0] - c0[0]) * 0.25, c[1], SEED[2] + (c[2] - c0[2]) * 0.25];
+      return stemLine(t);
     };
     const stemRadius = (t) => Math.max(0.0013, 0.0027 - 0.0045 * Math.max(0, t));
     // pieces: hypocotyl (stage 2), epicotyl (stage 3), the stage-4 shoot: t range, segments, first birth
@@ -237,6 +247,9 @@
 
   // ---------------------------------------------------------------- tree (port of TreeBuilder)
   function buildTree(seed = 1729, maxDepth = 12) {
+    // growth time along the branches: a branch of length l takes l^0.2, so the tree grows level by level (trunk,
+    // limbs, forks, twigs) and is a small tree early on rather than a long pole; normalised to 0..1 when tessellated
+    const growTime = (l) => Math.pow(l, 0.2), TRUNK_TIME = 0.9 * growTime(0.85);
     let st = seed >>> 0;
     const rnd = () => { st = (st + 0x6D2B79F5) >>> 0; let t = st; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     const f = (lo, hi) => lo + rnd() * (hi - lo);
@@ -245,7 +258,7 @@
     const trunkRadius = 0.05, minRadius = 0.0009, shell = 0.74;
     const bendAxis = (d, towards) => { const c = cross(d, towards); return len(c) < 1e-4 ? perp(d) : norm(c); };
 
-    function grow(start, dir0, rStart, r0, length, depth, path0, axis0, kappa) {
+    function grow(start, dir0, rStart, r0, length, depth, path0, axis0, kappa, off) {
       const stepLen = r0 > 0.006 ? 0.022 : 0.03;
       const n = Math.min(22, Math.max(2, Math.floor(length / stepLen)));
       const step = length / n;
@@ -269,16 +282,16 @@
         pts.push(p);
         const k = i / n;
         radii.push((rStart + (r0 - rStart) * Math.min(1, k / 0.33)) * (1 - taper * k));
-        path.push(path0 + step * i);
+        path.push(path0 + growTime(length) * i / n);
       }
-      branches.push({ pts, radii, path });
+      branches.push({ pts, radii, path, off });
       if (depth >= 1 && depth <= maxDepth - 5 && r0 < 0.018) {
         for (let i = 1; i < n - 1; i += 2) {
           if (rnd() < 0.85) {
             const side = rot(perp(d), d, rnd() * 2 * PI);
             const td = rot(norm(sub(pts[i + 1], pts[i])), side, f(0.7, 1.1));
             const tr = Math.max(minRadius, radii[i] * 0.5);
-            grow(pts[i], td, tr * 1.2, tr, length * f(0.32, 0.48), maxDepth - 3, path[i], side, kappa * f(0.8, 1.4));
+            grow(pts[i], td, tr * 1.2, tr, length * f(0.32, 0.48), maxDepth - 3, path[i], side, kappa * f(0.8, 1.4), off);
           }
         }
       }
@@ -296,15 +309,15 @@
         const cl = length * f(0.78, 0.90) * Math.pow(rc / rEnd, 0.2);
         const cAxis = k === 1 ? mul(plane, -1) : plane;
         const cKappa = Math.min(3.2, kappa * f(0.95, 1.12));
-        grow(sub(p, mul(d, rc * 0.5)), cd, Math.min(rEnd, rc * 1.3), rc, cl, depth + 1, path[path.length - 1], norm(sub(cAxis, mul(cd, dot(cAxis, cd)))), cKappa);
+        grow(sub(p, mul(d, rc * 0.5)), cd, Math.min(rEnd, rc * 1.3), rc, cl, depth + 1, path[path.length - 1], norm(sub(cAxis, mul(cd, dot(cAxis, cd)))), cKappa, off);
       }
     }
 
     const strands = 5, n = 30, twist = 1.4 * PI, r0 = 0.085;
     for (let k = 0; k < strands; k++) {
       const phase = k * 2 * PI / strands + f(-0.2, 0.2);
-      const pts = [], radii = [], path = [];
-      let L = 0, radial = [1, 0, 0], tangent = [0, 1, 0];
+      const pts = [], radii = [], path = [], offs = [];
+      let radial = [1, 0, 0], tangent = [0, 1, 0];
       for (let i = 0; i <= n; i++) {
         const t = i / n;
         const c = centre(t);
@@ -317,26 +330,26 @@
         const part = Math.max(0, (t - 0.8) / 0.2);
         const rho = r0 * 0.58 * (1 + 1.5 * base) * (1 - 0.2 * t) * (1 + 2.2 * part * part);
         const p = add(c, mul(radial, rho));
-        if (i > 0) L += len(sub(p, pts[pts.length - 1]));
         pts.push(p);
         radii.push(r0 * 0.47 * (1 + 0.7 * base) * (1 - 0.22 * t));
-        path.push(L);
+        path.push(TRUNK_TIME * t);
+        offs.push(sub(p, stemLine(t)));
       }
       const foot = sub(pts[0], mul(norm(sub(pts[1], pts[0])), radii[0] * 0.6));
-      pts.unshift(foot); radii.unshift(radii[0] * 0.35); path.unshift(0);
-      branches.push({ pts, radii, path });
+      pts.unshift(foot); radii.unshift(radii[0] * 0.35); path.unshift(0); offs.unshift(sub(foot, stemLine(0)));
+      branches.push({ pts, radii, path, offs });
       const top = pts[pts.length - 1];
       const dir = norm(add(mul(tangent, 0.85), mul(radial, 0.75)));
       const rEnd = radii[radii.length - 1];
-      grow(sub(top, mul(dir, rEnd * 0.5)), dir, rEnd, rEnd * 0.95, f(0.28, 0.34), 0, path[path.length - 1], bendAxis(dir, radial), f(0.8, 1.1));
+      grow(sub(top, mul(dir, rEnd * 0.5)), dir, rEnd, rEnd * 0.95, f(0.28, 0.34), 0, path[path.length - 1], bendAxis(dir, radial), f(0.8, 1.1), offs[offs.length - 1]);
       const j = Math.floor(n * (0.42 + 0.08 * k + f(-0.03, 0.03)));
       const sideRadial = norm(sub(pts[j], centre(j / n)));
       const sd = norm(add(mul(sideRadial, 0.9), [0, 0.55, 0]));
-      grow(pts[j], sd, radii[j] * 0.7, radii[j] * 0.52, f(0.24, 0.30), 1, path[j], bendAxis(sd, norm(add(sideRadial, [0, -0.6, 0]))), f(1.1, 1.4));
+      grow(pts[j], sd, radii[j] * 0.7, radii[j] * 0.52, f(0.24, 0.30), 1, path[j], bendAxis(sd, norm(add(sideRadial, [0, -0.6, 0]))), f(1.1, 1.4), offs[j]);
       const rootRadial = norm(sub(pts[1], centre(0)));
       const rd = rot(rootRadial, [0, 1, 0], f(-0.3, 0.3));
       const d = norm(add(rd, [0, -0.35, 0]));
-      grow(pts[1], d, radii[1] * 0.8, radii[1] * 0.42, f(0.15, 0.19), maxDepth - 3, 0, bendAxis(d, [0, -1, 0]), f(1.2, 1.8));
+      grow(pts[1], d, radii[1] * 0.8, radii[1] * 0.42, f(0.09, 0.114), maxDepth - 2, 0, bendAxis(d, [0, -1, 0]), f(1.2, 1.8), offs[1]);
     }
 
     // tessellate: tubes with parallel-transport frames, then the seedling; F floats per vertex (tree: timing -1)
@@ -359,7 +372,8 @@
           const dx = normal[0] * ca + bin[0] * sa, dy = normal[1] * ca + bin[1] * sa, dz = normal[2] * ca + bin[2] * sa;
           v[vo++] = pts[i][0] + dx * r; v[vo++] = pts[i][1] + dy * r; v[vo++] = pts[i][2] + dz * r;
           v[vo++] = dx; v[vo++] = dy; v[vo++] = dz; v[vo++] = pn; v[vo++] = th;
-          v[vo++] = 0; v[vo++] = 0; v[vo++] = 0; v[vo++] = -1;
+          const o = b.offs ? b.offs[i] : b.off;
+          v[vo++] = o[0]; v[vo++] = o[1]; v[vo++] = o[2]; v[vo++] = -1;
         }
       }
       for (let i = 0; i < pts.length - 1; i++) for (let j = 0; j < s; j++) {
@@ -416,7 +430,7 @@
   // ---------------------------------------------------------------- shaders (generated from the app's GLSL)
   const PROLOGUE = '#version 300 es\nprecision highp float;\nprecision highp int;\n';
   const SRC = {
-    "tree.vert": "// Tree sphere: the branches. One source for Vulkan (glslc -std=450core, which predefines VULKAN) and OpenGL ES 3.0\n// (the app prepends \"#version 300 es\"). Uniform layout: TreeSphereController (shared-app).\n#ifdef VULKAN\n#define UBO layout(set = 0, binding = 0, std140) uniform\n#define VARY(n) layout(location = n)\n#else\n#define UBO layout(std140) uniform\n#define VARY(n)\n#endif\n\nUBO Frame { mat4 mvp; mat4 model; vec4 previous; vec4 incoming; vec4 params; vec4 sphere; vec4 growth; vec4 view; } u;\n\nlayout(location = 0) in vec3 aPos;\nlayout(location = 1) in vec3 aNormal;\nlayout(location = 2) in vec2 aPathThick;\nlayout(location = 3) in vec4 aGrow; // anchor xyz, timing (TreeMesh)\n\nVARY(0) out vec3 vNormal;\nVARY(1) out vec2 vPathThick;\nVARY(2) out float vDepth;\nVARY(3) out vec3 vPos;\n\n// Growth (TreeGrowth, mirrored in TreeGrowth.world; keep in step). u.growth: x = growth in stages, y = tree growth\n// 0..1, z = seedling colour reach; u.view: x = zoom about SEED, y = height SEED is drawn at.\nconst vec3 SEED = vec3(-0.03, -0.836, 0.0); // TreeGrowth.SEED\nconst float TRUNK_RADIUS = 0.05;            // TreeMesh.TRUNK_RADIUS\nconst float TIP = 0.06;                     // TreeGrowth.TIP\nconst float TIP_SHARE = 0.2;                // TreeGrowth.TIP_SHARE\nconst float YOUNG_THICK = 0.07;             // TreeGrowth.YOUNG_THICK\nconst float YOUNG_WIDTH = 0.1;              // TreeGrowth.YOUNG_WIDTH\nconst float STEP = 0.25;                    // TreeGrowth.STEP\n\nvoid main() {\n    float thick = abs(aPathThick.y);\n    float r = thick * TRUNK_RADIUS;\n    vec3 world;\n    float path;\n    if (aGrow.w < 0.0) {\n        // the tree: exists up to the growth front along its branches, tips tapering to a point; vertices past the\n        // front collapse onto the centre line (zero-area triangles draw nothing); young trees are slim and narrow\n        float g = u.growth.y;\n        float tip = max(1e-4, min(TIP, TIP_SHARE * g));\n        float reach = g + tip;\n        float grown = g > 0.0 ? 1.0 - smoothstep(reach - tip, reach, aPathThick.x) : 0.0; // nothing before the tree starts\n        world = aPos - aNormal * r + aNormal * (r * grown * mix(YOUNG_THICK, 1.0, g));\n        float q = mix(YOUNG_WIDTH, 1.0, g); // a young tree is narrow and upright\n        world.xz = SEED.xz + (world.xz - SEED.xz) * q;\n        path = aPathThick.x / max(reach, 1e-3); // the colour flows over the grown part\n    } else {\n        // a seedling part: grows out of its anchor from its birth, then solids shrink back and tubes thin out\n        float k = floor(aGrow.w / 20.0);\n        float birth = aGrow.w - 20.0 * k - 1.5;\n        float born = smoothstep(birth, birth + STEP, u.growth.x);\n        float gone = smoothstep(k * 0.25, k * 0.25 + STEP, u.growth.x);\n        if (aPathThick.y < 0.0) {\n            world = aGrow.xyz + (aPos - aGrow.xyz) * (born * (1.0 - gone));\n        } else {\n            vec3 centre = aGrow.xyz + (aPos - aNormal * r - aGrow.xyz) * born;\n            world = centre + aNormal * (r * born * (1.0 - gone));\n        }\n        path = aPathThick.x / u.growth.z;\n    }\n    // the camera: zoomed about the seed so the plant fills the glass\n    vec3 pos = vec3(SEED.x, u.view.y, SEED.z) + (world - SEED) * u.view.x;\n    gl_Position = u.mvp * vec4(pos, 1.0);\n    vNormal = mat3(u.model) * aNormal;\n    vPathThick = vec2(path, thick);\n    vDepth = (u.model * vec4(pos, 1.0)).z;\n    vPos = aPos;\n}\n",
+    "tree.vert": "// Tree sphere: the branches. One source for Vulkan (glslc -std=450core, which predefines VULKAN) and OpenGL ES 3.0\n// (the app prepends \"#version 300 es\"). Uniform layout: TreeSphereController (shared-app).\n#ifdef VULKAN\n#define UBO layout(set = 0, binding = 0, std140) uniform\n#define VARY(n) layout(location = n)\n#else\n#define UBO layout(std140) uniform\n#define VARY(n)\n#endif\n\nUBO Frame { mat4 mvp; mat4 model; vec4 previous; vec4 incoming; vec4 params; vec4 sphere; vec4 growth; vec4 view; } u;\n\nlayout(location = 0) in vec3 aPos;\nlayout(location = 1) in vec3 aNormal;\nlayout(location = 2) in vec2 aPathThick;\nlayout(location = 3) in vec4 aGrow; // anchor xyz, timing (TreeMesh)\n\nVARY(0) out vec3 vNormal;\nVARY(1) out vec2 vPathThick;\nVARY(2) out float vDepth;\nVARY(3) out vec3 vPos;\n\n// Growth (TreeGrowth, mirrored in TreeGrowth.world; keep in step). u.growth: x = growth in stages, y = tree growth\n// 0..1, z = seedling colour reach; u.view: x = zoom about SEED, y = height SEED is drawn at.\nconst vec3 SEED = vec3(-0.03, -0.836, 0.0); // TreeGrowth.SEED\nconst float TRUNK_RADIUS = 0.05;            // TreeMesh.TRUNK_RADIUS\nconst float TIP = 0.06;                     // TreeGrowth.TIP\nconst float TIP_SHARE = 0.2;                // TreeGrowth.TIP_SHARE\nconst float YOUNG_THICK = 0.02;             // TreeGrowth.YOUNG_THICK\nconst float YOUNG_WIDTH = 0.8;              // TreeGrowth.YOUNG_WIDTH\nconst float STEP = 0.25;                    // TreeGrowth.STEP\n\nvoid main() {\n    float thick = abs(aPathThick.y);\n    float r = thick * TRUNK_RADIUS;\n    vec3 world;\n    float path;\n    if (aGrow.w < 0.0) {\n        // the tree: exists up to the growth front (path = growth time, level by level from the trunk), tips tapering\n        // to a point; vertices past the front collapse onto the centre line (zero-area triangles draw nothing); young\n        // trees are slim, upright and a little narrow\n        float g = u.growth.y;\n        float tip = max(1e-4, min(TIP, TIP_SHARE * g));\n        float reach = g + tip;\n        float grown = g > 0.0 ? 1.0 - smoothstep(reach - tip, reach, aPathThick.x) : 0.0; // nothing before the tree starts\n        world = aPos - aNormal * r + aNormal * (r * grown * mix(YOUNG_THICK, 1.0, g));\n        // a young trunk stands upright on the seedling's stem line, its strands together, the limbs moved with it\n        world -= aGrow.xyz * (1.0 - g);\n        float q = mix(YOUNG_WIDTH, 1.0, g); // a young tree is a little narrow\n        world.xz = SEED.xz + (world.xz - SEED.xz) * q;\n        path = aPathThick.x / max(reach, 1e-3); // the colour flows over the grown part\n    } else {\n        // a seedling part: grows out of its anchor from its birth, then solids shrink back and tubes thin out\n        float k = floor(aGrow.w / 20.0);\n        float birth = aGrow.w - 20.0 * k - 1.5;\n        float born = smoothstep(birth, birth + STEP, u.growth.x);\n        float gone = smoothstep(k * 0.25, k * 0.25 + STEP, u.growth.x);\n        if (aPathThick.y < 0.0) {\n            world = aGrow.xyz + (aPos - aGrow.xyz) * (born * (1.0 - gone));\n        } else {\n            vec3 centre = aGrow.xyz + (aPos - aNormal * r - aGrow.xyz) * born;\n            world = centre + aNormal * (r * born * (1.0 - gone));\n        }\n        path = aPathThick.x / u.growth.z;\n    }\n    // the camera: zoomed about the seed so the plant fills the glass\n    vec3 pos = vec3(SEED.x, u.view.y, SEED.z) + (world - SEED) * u.view.x;\n    gl_Position = u.mvp * vec4(pos, 1.0);\n    vNormal = mat3(u.model) * aNormal;\n    vPathThick = vec2(path, thick);\n    vDepth = (u.model * vec4(pos, 1.0)).z;\n    vPos = aPos;\n}\n",
     "tree.frag": "// Tree sphere: branch shading and the colour replacement along the branches (mirrored in TreeSphere.metal).\n#ifdef VULKAN\n#define UBO layout(set = 0, binding = 0, std140) uniform\n#define VARY(n) layout(location = n)\n#else\n#define UBO layout(std140) uniform\n#define VARY(n)\n#endif\n\nUBO Frame { mat4 mvp; mat4 model; vec4 previous; vec4 incoming; vec4 params; vec4 sphere; vec4 growth; vec4 view; } u;\n\nVARY(0) in vec3 vNormal;\nVARY(1) in vec2 vPathThick;\nVARY(2) in float vDepth;\nVARY(3) in vec3 vPos;\nlayout(location = 0) out vec4 outColor;\n\nconst float EDGE = 0.06; // TreeSphereController.EDGE\n\nvoid main() {\n    float path = vPathThick.x;\n    float front = u.params.x;\n    // 1 where the incoming colour has arrived, 0 where the previous one still is, soft over EDGE\n    float arrived = 1.0 - smoothstep(front - EDGE, front, path);\n    vec3 base = mix(u.previous.rgb, u.incoming.rgb, arrived);\n\n    float progress = clamp(front / (1.0 + EDGE), 0.0, 1.0);\n    vec3 n = normalize(vNormal);\n    if (!gl_FrontFacing) n = -n;\n    vec3 l = normalize(vec3(-0.45, 0.75, 0.55));\n    vec3 h = normalize(l + vec3(0.0, 0.0, 1.0));\n    float facing = abs(n.z);\n    float spec = pow(max(dot(n, h), 0.0), 48.0);\n    float rim = pow(1.0 - facing, 2.0);\n    float thin = 1.0 - clamp(vPathThick.y * 1.6, 0.0, 1.0);\n\n    // glassy, luminous tubes: light along the core, deeper colour at the edges\n    // the palette is soft; light inside glass reads more saturated\n    vec3 vivid = clamp(mix(vec3(dot(base, vec3(0.299, 0.587, 0.114))), base, 1.5), 0.0, 1.0);\n    vec3 col = mix(vivid * 0.82, mix(vivid, vec3(1.0), 0.32), pow(facing, 1.4));\n    col *= 0.86 + 0.24 * max(dot(n, l), 0.0);\n    col = mix(col, mix(vivid, vec3(1.0), 0.5) * 1.06, thin * 0.7); // twigs glow, light and airy\n    col += spec * 0.5 + rim * 0.16 * mix(vivid, vec3(1.0), 0.5);\n\n    // glints: a few points on the fine twigs catch the light and twinkle (cells fixed to the tree, so they turn with it)\n    vec3 cell = floor(vPos * 85.0);\n    float hsh = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);\n    float glint = smoothstep(0.962, 1.0, hsh) * (0.55 + 0.45 * sin(u.params.w * 2.3 + hsh * 60.0));\n    col += glint * thin * thin * mix(vivid, vec3(1.0), 0.6) * 1.1; // twigs only, never the trunk\n\n    // the propagation front: a bright band of the incoming colour just behind the edge\n    float d = (path - (front - EDGE * 0.5)) / 0.035;\n    col += u.params.y * exp(-d * d) * (u.incoming.rgb * 0.55 + 0.35);\n\n    // branches at the back are seen through the tinted glass\n    float far = clamp(0.5 - 0.5 * vDepth, 0.0, 1.0);\n    vec3 haze = mix(vec3(1.0), mix(u.previous.rgb, u.incoming.rgb, progress), 0.22);\n    col = mix(col, haze, far * far * 0.6);\n    outColor = vec4(min(col, vec3(1.0)), 1.0);\n}\n",
     "sphere.vert": "// Tree sphere: one screen-aligned quad around the glass; the fragment shaders compute the sphere per pixel.\n#ifdef VULKAN\n#define UBO layout(set = 0, binding = 0, std140) uniform\n#define VARY(n) layout(location = n)\n#define VERTEX_ID gl_VertexIndex\n#else\n#define UBO layout(std140) uniform\n#define VARY(n)\n#define VERTEX_ID gl_VertexID\n#endif\n\nUBO Frame { mat4 mvp; mat4 model; vec4 previous; vec4 incoming; vec4 params; vec4 sphere; vec4 growth; vec4 view; } u;\n\nVARY(0) out vec2 vUv;\n\nvoid main() {\n    // two triangles: (0,1,2) (2,1,3) over the corners (-1,-1) (1,-1) (-1,1) (1,1), slightly enlarged for the rim AA\n    int i = VERTEX_ID;\n    int c = i < 3 ? i : (i == 3 ? 2 : (i == 4 ? 1 : 3));\n    vec2 corner = vec2(float(c & 1) * 2.0 - 1.0, float(c >> 1) * 2.0 - 1.0) * 1.03;\n    vUv = corner;\n    gl_Position = vec4(corner.x * u.sphere.x, corner.y * u.sphere.y, u.sphere.w, 1.0);\n}\n",
     "sphere_back.frag": "// Tree sphere: the far side of the glass, drawn before the tree (alpha blended over the background).\n#ifdef VULKAN\n#define UBO layout(set = 0, binding = 0, std140) uniform\n#define VARY(n) layout(location = n)\n#else\n#define UBO layout(std140) uniform\n#define VARY(n)\n#endif\n\nUBO Frame { mat4 mvp; mat4 model; vec4 previous; vec4 incoming; vec4 params; vec4 sphere; vec4 growth; vec4 view; } u;\n\nVARY(0) in vec2 vUv;\nlayout(location = 0) out vec4 outColor;\n\nvoid main() {\n    float r = length(vUv);\n    float aa = u.params.z;\n    float inside = 1.0 - smoothstep(1.0 - aa, 1.0, r);\n    if (inside <= 0.0) discard;\n    float z = sqrt(max(0.0, 1.0 - r * r));\n    // the glass is faintly filled with the tree's colour, thicker towards the rim\n    float progress = clamp(u.params.x / 1.06, 0.0, 1.0);\n    vec3 hazeCol = mix(u.previous.rgb, u.incoming.rgb, progress);\n    vec3 tint = mix(vec3(0.94, 0.97, 1.0), hazeCol, 0.45);\n    float a = 0.06 + 0.30 * pow(1.0 - z, 2.2);\n    // caustic: light focused by the glass onto the lower inside\n    vec2 c = vUv - vec2(0.18, -0.62);\n    float caustic = exp(-dot(c, c) * 9.0) * 0.22;\n    vec3 col = mix(tint, vec3(1.0), caustic / max(a + caustic, 1e-3));\n    a += caustic;\n    // inner light: the crown glows softly in its colour, like the reference\n    vec2 g = vUv - vec2(0.0, 0.18);\n    float glow = exp(-dot(g, g) * 2.2) * 0.12;\n    col = mix(col, mix(hazeCol, vec3(1.0), 0.35), glow / max(a + glow, 1e-3));\n    a += glow;\n    outColor = vec4(col, a * inside);\n}\n",
